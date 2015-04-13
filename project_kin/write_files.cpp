@@ -7,15 +7,7 @@
 #include <string>
 #include <iostream>
 #include <stdint.h>
-
-const freenect_resolution cur_resolution_depth = FREENECT_RESOLUTION_MEDIUM;
-const freenect_depth_format cur_format_depth = FREENECT_DEPTH_REGISTERED;
-
-const freenect_resolution cur_resolution_video = FREENECT_RESOLUTION_MEDIUM;
-const freenect_video_format cur_format_video = FREENECT_VIDEO_RGB;
-
-const int MAX_FILES = 50;
-
+ 
 void depth_cb(freenect_device *dev, void *v_depth, uint32_t timestamp);
 void video_cb(freenect_device *dev, void *v_rgb, uint32_t timestamp);
 
@@ -42,7 +34,33 @@ struct Data
 	frame_sequence kinect_data; 
 	uint16_t* depth;
 	uint8_t* rgb;
+
+	freenect_resolution cur_resolution_depth;
+	freenect_depth_format cur_format_depth;
+
+	freenect_resolution cur_resolution_video = FREENECT_RESOLUTION_MEDIUM;
+	freenect_video_format cur_format_video = FREENECT_VIDEO_RGB;
+
+	const int MAX_FILES = 50;
+	const int MAX_RESOLUTION_DEPTH = 0;
+	const int MAX_FORMAT_DEPTH = 0;
+	const int MAX_RESOLUTION_VIDEO = 0;
+	const int MAX_FORMAT_VIDEO = 0;
+
+	static const freenect_resolution types_of_resolutions_depth[] = {FREENECT_RESOLUTION_MEDIUM};
+	static const freenect_depth_format types_of_formats_depth[] = {FREENECT_DEPTH_REGISTERED};
+	static const freenect_resolution types_of_resolutions_video[] = {FREENECT_RESOLUTION_MEDIUM};
+	static const freenect_video_format types_of_formats_video[] = {FREENECT_VIDEO_RGB};
 };
+
+//const freenect_video_format 
+
+//Data::types_of_formats_depth
+
+//const freenect_resolution Data::types_of_resolutions_depth[1] = {FREENECT_RESOLUTION_MEDIUM};
+//const freenect_depth_format Data::types_of_formats_depth[1] = {FREENECT_DEPTH_REGISTERED};
+//const freenect_resolution Data::types_of_resolutions_video[1] = {FREENECT_RESOLUTION_MEDIUM};
+//const freenect_video_format Data::types_of_formats_video[1] = {FREENECT_VIDEO_RGB};
 
 struct Singleton
 {
@@ -92,8 +110,8 @@ int frame_sequence::size()
 
 void frame_sequence::write_to_files(Files& kinect_files)
 {
-	int width_depth = freenect_find_depth_mode(cur_resolution_depth, cur_format_depth).width;
-	int height_depth = freenect_find_depth_mode(cur_resolution_depth, cur_format_depth).height;
+	int width_depth = freenect_find_depth_mode(Singleton::GetSingleton()->data.cur_resolution_depth, Singleton::GetSingleton()->data.cur_format_depth).width;
+	int height_depth = freenect_find_depth_mode(Singleton::GetSingleton()->data.cur_resolution_depth, Singleton::GetSingleton()->data.cur_format_depth).height;
 	for (int i = 0; i < (int)kinect_files.depth_files.size(); i++)
 	{
 		for (int j = 0; j < height_depth; j++)
@@ -103,8 +121,8 @@ void frame_sequence::write_to_files(Files& kinect_files)
 			fprintf(kinect_files.depth_files[i], "\n");
 		}
 	}
-	int width_video = freenect_find_video_mode(cur_resolution_video, cur_format_video).width;
-	int height_video = freenect_find_video_mode(cur_resolution_video, cur_format_video).height;
+	int width_video = freenect_find_video_mode(Singleton::GetSingleton()->data.cur_resolution_video, Singleton::GetSingleton()->data.cur_format_video).width;
+	int height_video = freenect_find_video_mode(Singleton::GetSingleton()->data.cur_resolution_video, Singleton::GetSingleton()->data.cur_format_video).height;
 	for (int i = 0; i < (int)kinect_files.video_files.size(); i++)
 	{
 		for (int j = 0; j < height_video; j++)
@@ -155,11 +173,11 @@ void Device::InitDevice(int user_device_number = 0)
 
 	freenect_set_depth_callback(f_dev, depth_cb);
 	freenect_set_video_callback(f_dev, video_cb);
-	freenect_set_depth_mode(f_dev, freenect_find_depth_mode(cur_resolution_depth, cur_format_depth));
-	freenect_set_video_mode(f_dev, freenect_find_video_mode(cur_resolution_video, cur_format_video));
+	freenect_set_depth_mode(f_dev, freenect_find_depth_mode(Singleton::GetSingleton()->data.cur_resolution_depth, Singleton::GetSingleton()->data.cur_format_depth));
+	freenect_set_video_mode(f_dev, freenect_find_video_mode(Singleton::GetSingleton()->data.cur_resolution_video, Singleton::GetSingleton()->data.cur_format_video));
 
-	uint16_t* depth = (uint16_t*) new uint8_t [freenect_find_depth_mode(cur_resolution_depth, cur_format_depth).bytes];
-	uint8_t* rgb = new uint8_t [freenect_find_video_mode(cur_resolution_video, cur_format_video).bytes];
+	uint16_t* depth = (uint16_t*) new uint8_t [freenect_find_depth_mode(Singleton::GetSingleton()->data.cur_resolution_depth, Singleton::GetSingleton()->data.cur_format_depth).bytes];
+	uint8_t* rgb = new uint8_t [freenect_find_video_mode(Singleton::GetSingleton()->data.cur_resolution_video, Singleton::GetSingleton()->data.cur_format_video).bytes];
 
 	freenect_set_depth_buffer(f_dev, depth);
 	freenect_set_video_buffer(f_dev, rgb);
@@ -190,16 +208,24 @@ void Device::writeFiles(Files& kinect_files)
 
 void write_help()
 {
-	std::cout << "use <run_file> <number_of_device> <count_of_files>" << std::endl;
-	std::cout << "	number_of_device: number of device that you want to open, default = 0\n";
-	std::cout << "	count_of_files: number of files that you want to get in the end, 1 <= count_of_files <= 50, default 1\n"; 
+	std::cout << "use <run_file> <number_of_device> <count_of_files> <resolution_depth> <format_depth> <resolution_format> <resolution_depth>" << std::endl;
+	std::cout << "	number_of_device: number of device that you want to open, [0..], default = 0\n";
+	std::cout << "	count_of_files: number of files that you want to get in the end, [1..50], default 1\n"; 
+	std::cout << "	resolution_depth: code of depth resolution, [0.." << Singleton::GetSingleton()->data.MAX_RESOLUTION_DEPTH << "]\n";
+	std::cout << "		0 - (default) FREENECT_RESOLUTION_MEDIUM\n";
+	std::cout << "	format_depth: code of depth format, [0.." << Singleton::GetSingleton()->data.MAX_FORMAT_DEPTH << "]\n";
+	std::cout << "		0 - (default) FREENECT_DEPTH_REGISTERED\n";
+	std::cout << "	resolution_video: code of video resolution, [0.." << Singleton::GetSingleton()->data.MAX_RESOLUTION_VIDEO << "]\n";
+	std::cout << "		0 - (default) FREENECT_RESOLUTION_MEDIUM\n";
+	std::cout << " format_video: code of video format, [0.." << Singleton::GetSingleton()->data.MAX_FORMAT_VIDEO << "]\n";
+	std::cout << "		0 - (default) FREENECT_VIDEO_RGB\n"; 	 
 }
 
 void depth_cb(freenect_device *dev, void *v_depth, uint32_t timestamp)
 {
 	assert (Singleton::GetSingleton()->data.depth == v_depth);
 	
-	uint16_t* new_depth = (uint16_t*) new uint8_t [freenect_find_depth_mode(cur_resolution_depth, cur_format_depth).bytes];
+	uint16_t* new_depth = (uint16_t*) new uint8_t [freenect_find_depth_mode(Singleton::GetSingleton()->data.cur_resolution_depth, Singleton::GetSingleton()->data.cur_format_depth).bytes];
 
 	Singleton::GetSingleton()->data.kinect_data.add_depth((uint16_t*)Singleton::GetSingleton()->data.depth);
 	Singleton::GetSingleton()->data.depth = new_depth;
@@ -210,7 +236,7 @@ void video_cb(freenect_device *dev, void *v_rgb, uint32_t timestamp)
 {
 	assert(Singleton::GetSingleton()->data.rgb == v_rgb);
 
-	uint8_t* new_rgb = new uint8_t [freenect_find_video_mode(cur_resolution_video, cur_format_video).bytes];
+	uint8_t* new_rgb = new uint8_t [freenect_find_video_mode(Singleton::GetSingleton()->data.cur_resolution_video, Singleton::GetSingleton()->data.cur_format_video).bytes];
 
 	Singleton::GetSingleton()->data.kinect_data.add_video((uint8_t*) Singleton::GetSingleton()->data.rgb);
 	Singleton::GetSingleton()->data.rgb = new_rgb;
@@ -257,16 +283,29 @@ void Files::init(int count_of_files)
 	}
 }
 
-void CheckValidation(int argc, char** argv, int& user_device_number, int& count_of_files)
+void CheckValidation(int argc, char** argv, int& user_device_number, int& count_of_files, Data& data)
 {
 	count_of_files = 1;
+
+	data.cur_resolution_depth = FREENECT_RESOLUTION_MEDIUM;
+	data.cur_format_depth = FREENECT_DEPTH_REGISTERED;
+
+	data.cur_resolution_video = FREENECT_RESOLUTION_MEDIUM;
+	data.cur_format_video = FREENECT_VIDEO_RGB;
+
 	if (argc > 1)
 	{
 		char *pEnd;
 		user_device_number = strtol(argv[1], &pEnd, 10);
 		if (*pEnd != 0)
 		{
-			std::cerr << "wrong arguments(user_device_number)" << std::endl;
+			std::cerr << "wrong arguments(count_of_files), argument is not number\n" << std::endl;
+			write_help();
+			throw My_Error("wrong_args");
+		}
+		if (user_device_number < 0)
+		{
+			std::cerr << "wrong arguments(count_of_files), number is out of bounds\n" << std::endl;
 			write_help();
 			throw My_Error("wrong_args");
 		}
@@ -277,24 +316,102 @@ void CheckValidation(int argc, char** argv, int& user_device_number, int& count_
 		count_of_files = strtol(argv[2], &pEnd, 10);
 		if (*pEnd != 0)
 		{
-			std::cerr << "wrong arguments(count_of_files), argument is not number" << std::endl;
+			std::cerr << "wrong arguments(count_of_files), argument is not number\n" << std::endl;
 			write_help();
 			throw My_Error("wrong_args");			
 		}
-		if (count_of_files < 1 || count_of_files > MAX_FILES)
+		if (count_of_files < 1 || count_of_files > data.MAX_FILES)
 		{
-			std::cerr << "wrong arguments(count_of_files), number is out of bounds " << std::endl;
+			std::cerr << "wrong arguments(count_of_files), number is out of bounds\n" << std::endl;
 			write_help();
 			throw My_Error("wrong_args");
 		}
 	}
+	if (argc > 3)
+	{
+		char* pEnd;
+		int num_resolution_depth;
+		num_resolution_depth = strtol(argv[3], &pEnd, 10);
+		if (*pEnd != 0)
+		{
+			std::cerr << "wrong arguments(resolution_depth), argument is not number\n" << std::endl;
+			write_help();
+			throw My_Error("wrong_args");			
+		}
+		if (num_resolution_depth < 0 || num_resolution_depth > data.MAX_RESOLUTION_DEPTH)
+		{
+			std::cerr << "wrong arguments(resolution_depth), number is out of bounds\n" << std::endl;
+			write_help();
+			throw My_Error("wrong_args");
+		}
+		data.cur_resolution_depth = Data::types_of_resolutions_depth[num_resolution_depth];
+	}
+	if (argc > 4)
+	{
+		char* pEnd;
+		int num_format_depth;
+		num_format_depth = strtol(argv[4], &pEnd, 10);
+		if (*pEnd != 0)
+		{
+			std::cerr << "wrong arguments(format_depth), argument is not number\n" << std::endl;
+			write_help();
+			throw My_Error("wrong_args");			
+		}
+		if (num_format_depth < 0 || num_format_depth > data.MAX_FORMAT_DEPTH)
+		{
+			std::cerr << "wrong arguments(format_depth), number is out of bounds\n" << std::endl;
+			write_help();
+			throw My_Error("wrong_args");
+		}	
+		data.cur_format_depth = Data::types_of_formats_depth[num_format_depth];	
+	}
+	if (argc > 5)
+	{
+		char* pEnd;
+		int num_resolution_video;
+		num_resolution_video = strtol(argv[5], &pEnd, 10);
+		if (*pEnd != 0)
+		{
+			std::cerr << "wrong arguments(resolution_video), argument is not number\n" << std::endl;
+			write_help();
+			throw My_Error("wrong_args");			
+		}
+		if (num_resolution_video < 0 || num_resolution_video > data.MAX_RESOLUTION_VIDEO)
+		{
+			std::cerr << "wrong arguments(resolution_video), number is out of bounds\n" << std::endl;
+			write_help();
+			throw My_Error("wrong_args");
+		}
+		data.cur_resolution_video = Data::types_of_resolutions_video[num_resolution_video];
+	}
+	if (argc > 6)
+	{
+		char* pEnd;
+		int num_format_video;
+		num_format_video = strtol(argv[6], &pEnd, 10);
+		if (*pEnd != 0)
+		{
+			std::cerr << "wrong arguments(format_video), argument is not number" << std::endl;
+			write_help();
+			throw My_Error("wrong_args");			
+		}
+		if (num_format_video < 0 || num_format_video > data.MAX_FORMAT_VIDEO)
+		{
+			std::cerr << "wrong arguments(format_video), number is out of bounds " << std::endl;
+			write_help();
+			throw My_Error("wrong_args");
+		}
+		data.cur_format_video = Data::types_of_formats_video[num_format_video];		
+	}
+
 }
 
 int main(int argc, char **argv)
 {
 	int user_device_number = 0;
 
-	CheckValidation(argc, argv, user_device_number, Singleton::GetSingleton()->data.count_of_files);	
+	CheckValidation(argc, argv, user_device_number, Singleton::GetSingleton()->data.count_of_files, 
+										Singleton::GetSingleton()->data);	
 
 	Device dev;
 
