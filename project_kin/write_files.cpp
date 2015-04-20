@@ -47,11 +47,17 @@ struct Data
 	const int MAX_RESOLUTION_VIDEO = 0;
 	const int MAX_FORMAT_VIDEO = 0;
 
-	static const freenect_resolution types_of_resolutions_depth[] = {FREENECT_RESOLUTION_MEDIUM};
-	static const freenect_depth_format types_of_formats_depth[] = {FREENECT_DEPTH_REGISTERED};
-	static const freenect_resolution types_of_resolutions_video[] = {FREENECT_RESOLUTION_MEDIUM};
-	static const freenect_video_format types_of_formats_video[] = {FREENECT_VIDEO_RGB};
+	static const freenect_resolution types_of_resolutions_depth[];
+	static const freenect_depth_format types_of_formats_depth[];
+	static const freenect_resolution types_of_resolutions_video[];
+	static const freenect_video_format types_of_formats_video[];
 };
+
+const freenect_resolution Data::types_of_resolutions_depth[] = {FREENECT_RESOLUTION_MEDIUM};
+const freenect_depth_format Data::types_of_formats_depth[] = {FREENECT_DEPTH_REGISTERED};
+const freenect_resolution Data::types_of_resolutions_video[] = {FREENECT_RESOLUTION_MEDIUM};
+const freenect_video_format Data::types_of_formats_video[] = {FREENECT_VIDEO_RGB};
+
 
 //const freenect_video_format 
 
@@ -246,6 +252,7 @@ void video_cb(freenect_device *dev, void *v_rgb, uint32_t timestamp)
 
 std::string name_of_file_depth(int t)
 {
+//	int max_count_of_digits = std::to_string(GetSingleton()->data.count_of_files);	
 	if (t < 10)
 	{
 		return ("depth_file_0" + std::to_string(t));
