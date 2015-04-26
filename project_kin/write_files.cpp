@@ -258,7 +258,7 @@ std::string name_of_file_depth(int t, int max_t)
 	return "depth_file_" + std::string(s);		
 }
 
-std::string name_of_file_video(int t)
+std::string name_of_file_video(int t, int max_t)
 {
 	int size = std::to_string(max_t).size();
 	char s[size];
@@ -273,11 +273,11 @@ void Files::init(int count_of_files)
 
 	for (int i = 0; i < count_of_files; i++)
 	{
-		depth_files[i] = fopen(name_of_file_depth(i).c_str(), "w");
+		depth_files[i] = fopen(name_of_file_depth(i, count_of_files - 1).c_str(), "w");
 	}
 	for (int j = 0; j < (int)video_files.size(); j++)
 	{
-		video_files[j] = fopen(name_of_file_video(j).c_str(), "w");
+		video_files[j] = fopen(name_of_file_video(j, count_of_files - 1).c_str(), "w");
 	}
 }
 
