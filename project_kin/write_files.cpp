@@ -250,29 +250,20 @@ void video_cb(freenect_device *dev, void *v_rgb, uint32_t timestamp)
 }
 
 
-std::string name_of_file_depth(int t)
+std::string name_of_file_depth(int t, int max_t)
 {
-//	int max_count_of_digits = std::to_string(GetSingleton()->data.count_of_files);	
-	if (t < 10)
-	{
-		return ("depth_file_0" + std::to_string(t));
-	}
-	else
-	{
-		return ("depth_file_" + std::to_string(t));
-	}
+	int size = std::to_string(max_t).size();
+	char s[size];
+	std::sprintf(s, "%0*d", size, t);
+	return "depth_file_" + std::string(s);		
 }
 
 std::string name_of_file_video(int t)
 {
-	if (t < 10)
-	{
-		return ("video_file_0" + std::to_string(t));
-	}
-	else
-	{
-		return ("video_file_" + std::to_string(t));
-	}
+	int size = std::to_string(max_t).size();
+	char s[size];
+	std::sprintf(s, "%0*d", size, t);
+	return "video_file_" + std::string(s);		
 }
 
 void Files::init(int count_of_files)
