@@ -72,7 +72,7 @@ struct Singleton
 {
 	public:
 		Data data;
-		static Singleton* GetSingleton();
+		static Singleton* GetInstance();
 	private:        
 		static Singleton self;
 	        Singleton(){}
@@ -101,12 +101,12 @@ struct Device
 
 void frame_sequence::add_depth(uint16_t* depth)
 {
-	if ((int)depth_frame.size() < (int)Singleton::GetSingleton()->data.count_of_files)
+	if ((int)depth_frame.size() < (int)Singleton::GetInstance()->data.count_of_files)
 		depth_frame.push_back(depth);
 }
 void frame_sequence::add_video(uint8_t* video)
 {
-	if ((int)video_frame.size() < Singleton::GetSingleton()->data.count_of_files)
+	if ((int)video_frame.size() < Singleton::GetInstance()->data.count_of_files)
 		video_frame.push_back(video);
 }
 int frame_sequence::size()
@@ -116,8 +116,8 @@ int frame_sequence::size()
 
 void frame_sequence::write_to_files(Files& kinect_files)
 {
-	int width_depth = freenect_find_depth_mode(Singleton::GetSingleton()->data.cur_resolution_depth, Singleton::GetSingleton()->data.cur_format_depth).width;
-	int height_depth = freenect_find_depth_mode(Singleton::GetSingleton()->data.cur_resolution_depth, Singleton::GetSingleton()->data.cur_format_depth).height;
+	int width_depth = freenect_find_depth_mode(Singleton::GetInstance()->data.cur_resolution_depth, Singleton::GetInstance()->data.cur_format_depth).width;
+	int height_depth = freenect_find_depth_mode(Singleton::GetInstance()->data.cur_resolution_depth, Singleton::GetInstance()->data.cur_format_depth).height;
 	for (int i = 0; i < (int)kinect_files.depth_files.size(); i++)
 	{
 		for (int j = 0; j < height_depth; j++)
@@ -127,8 +127,8 @@ void frame_sequence::write_to_files(Files& kinect_files)
 			fprintf(kinect_files.depth_files[i], "\n");
 		}
 	}
-	int width_video = freenect_find_video_mode(Singleton::GetSingleton()->data.cur_resolution_video, Singleton::GetSingleton()->data.cur_format_video).width;
-	int height_video = freenect_find_video_mode(Singleton::GetSingleton()->data.cur_resolution_video, Singleton::GetSingleton()->data.cur_format_video).height;
+	int width_video = freenect_find_video_mode(Singleton::GetInstance()->data.cur_resolution_video, Singleton::GetInstance()->data.cur_format_video).width;
+	int height_video = freenect_find_video_mode(Singleton::GetInstance()->data.cur_resolution_video, Singleton::GetInstance()->data.cur_format_video).height;
 	for (int i = 0; i < (int)kinect_files.video_files.size(); i++)
 	{
 		for (int j = 0; j < height_video; j++)
@@ -140,7 +140,7 @@ void frame_sequence::write_to_files(Files& kinect_files)
 	}
 }
 
-Singleton* Singleton::GetSingleton()
+Singleton* Singleton::GetInstance()
 {
 	return &self;
 }
@@ -179,11 +179,11 @@ void Device::InitDevice(int user_device_number = 0)
 
 	freenect_set_depth_callback(f_dev, depth_cb);
 	freenect_set_video_callback(f_dev, video_cb);
-	freenect_set_depth_mode(f_dev, freenect_find_depth_mode(Singleton::GetSingleton()->data.cur_resolution_depth, Singleton::GetSingleton()->data.cur_format_depth));
-	freenect_set_video_mode(f_dev, freenect_find_video_mode(Singleton::GetSingleton()->data.cur_resolution_video, Singleton::GetSingleton()->data.cur_format_video));
+	freenect_set_depth_mode(f_dev, freenect_find_depth_mode(Singleton::GetInstance()->data.cur_resolution_depth, Singleton::GetInstance()->data.cur_format_depth));
+	freenect_set_video_mode(f_dev, freenect_find_video_mode(Singleton::GetInstance()->data.cur_resolution_video, Singleton::GetInstance()->data.cur_format_video));
 
-	uint16_t* depth = (uint16_t*) new uint8_t [freenect_find_depth_mode(Singleton::GetSingleton()->data.cur_resolution_depth, Singleton::GetSingleton()->data.cur_format_depth).bytes];
-	uint8_t* rgb = new uint8_t [freenect_find_video_mode(Singleton::GetSingleton()->data.cur_resolution_video, Singleton::GetSingleton()->data.cur_format_video).bytes];
+	uint16_t* depth = (uint16_t*) new uint8_t [freenect_find_depth_mode(Singleton::GetInstance()->data.cur_resolution_depth, Singleton::GetInstance()->data.cur_format_depth).bytes];
+	uint8_t* rgb = new uint8_t [freenect_find_video_mode(Singleton::GetInstance()->data.cur_resolution_video, Singleton::GetInstance()->data.cur_format_video).bytes];
 
 	freenect_set_depth_buffer(f_dev, depth);
 	freenect_set_video_buffer(f_dev, rgb);
@@ -202,11 +202,11 @@ void Device::writeFiles(Files& kinect_files)
 {
 	while (1)
 	{
-		if (Singleton::GetSingleton()->data.kinect_data.size() >= Singleton::GetSingleton()->data.count_of_files)
+		if (Singleton::GetInstance()->data.kinect_data.size() >= Singleton::GetInstance()->data.count_of_files)
 		{
 			freenect_stop_depth(f_dev);
 			freenect_stop_video(f_dev);
-			Singleton::GetSingleton()->data.kinect_data.write_to_files(kinect_files);
+			Singleton::GetInstance()->data.kinect_data.write_to_files(kinect_files);
 			break;
 		}
 	}
@@ -217,36 +217,36 @@ void write_help()
 	std::cout << "use <run_file> <number_of_device> <count_of_files> <resolution_depth> <format_depth> <resolution_format> <resolution_depth>" << std::endl;
 	std::cout << "	number_of_device: number of device that you want to open, [0..], default = 0\n";
 	std::cout << "	count_of_files: number of files that you want to get in the end, [1..50], default 1\n"; 
-	std::cout << "	resolution_depth: code of depth resolution, [0.." << Singleton::GetSingleton()->data.MAX_RESOLUTION_DEPTH << "]\n";
+	std::cout << "	resolution_depth: code of depth resolution, [0.." << Singleton::GetInstance()->data.MAX_RESOLUTION_DEPTH << "]\n";
 	std::cout << "		0 - (default) FREENECT_RESOLUTION_MEDIUM\n";
-	std::cout << "	format_depth: code of depth format, [0.." << Singleton::GetSingleton()->data.MAX_FORMAT_DEPTH << "]\n";
+	std::cout << "	format_depth: code of depth format, [0.." << Singleton::GetInstance()->data.MAX_FORMAT_DEPTH << "]\n";
 	std::cout << "		0 - (default) FREENECT_DEPTH_REGISTERED\n";
-	std::cout << "	resolution_video: code of video resolution, [0.." << Singleton::GetSingleton()->data.MAX_RESOLUTION_VIDEO << "]\n";
+	std::cout << "	resolution_video: code of video resolution, [0.." << Singleton::GetInstance()->data.MAX_RESOLUTION_VIDEO << "]\n";
 	std::cout << "		0 - (default) FREENECT_RESOLUTION_MEDIUM\n";
-	std::cout << " format_video: code of video format, [0.." << Singleton::GetSingleton()->data.MAX_FORMAT_VIDEO << "]\n";
+	std::cout << " format_video: code of video format, [0.." << Singleton::GetInstance()->data.MAX_FORMAT_VIDEO << "]\n";
 	std::cout << "		0 - (default) FREENECT_VIDEO_RGB\n"; 	 
 }
 
 void depth_cb(freenect_device *dev, void *v_depth, uint32_t timestamp)
 {
-	assert (Singleton::GetSingleton()->data.depth == v_depth);
+	assert (Singleton::GetInstance()->data.depth == v_depth);
 	
-	uint16_t* new_depth = (uint16_t*) new uint8_t [freenect_find_depth_mode(Singleton::GetSingleton()->data.cur_resolution_depth, Singleton::GetSingleton()->data.cur_format_depth).bytes];
+	uint16_t* new_depth = (uint16_t*) new uint8_t [freenect_find_depth_mode(Singleton::GetInstance()->data.cur_resolution_depth, Singleton::GetInstance()->data.cur_format_depth).bytes];
 
-	Singleton::GetSingleton()->data.kinect_data.add_depth((uint16_t*)Singleton::GetSingleton()->data.depth);
-	Singleton::GetSingleton()->data.depth = new_depth;
-	freenect_set_depth_buffer(dev, Singleton::GetSingleton()->data.depth);
+	Singleton::GetInstance()->data.kinect_data.add_depth((uint16_t*)Singleton::GetInstance()->data.depth);
+	Singleton::GetInstance()->data.depth = new_depth;
+	freenect_set_depth_buffer(dev, Singleton::GetInstance()->data.depth);
 }
 
 void video_cb(freenect_device *dev, void *v_rgb, uint32_t timestamp)
 {
-	assert(Singleton::GetSingleton()->data.rgb == v_rgb);
+	assert(Singleton::GetInstance()->data.rgb == v_rgb);
 
-	uint8_t* new_rgb = new uint8_t [freenect_find_video_mode(Singleton::GetSingleton()->data.cur_resolution_video, Singleton::GetSingleton()->data.cur_format_video).bytes];
+	uint8_t* new_rgb = new uint8_t [freenect_find_video_mode(Singleton::GetInstance()->data.cur_resolution_video, Singleton::GetInstance()->data.cur_format_video).bytes];
 
-	Singleton::GetSingleton()->data.kinect_data.add_video((uint8_t*) Singleton::GetSingleton()->data.rgb);
-	Singleton::GetSingleton()->data.rgb = new_rgb;
-	freenect_set_video_buffer(dev, Singleton::GetSingleton()->data.rgb);
+	Singleton::GetInstance()->data.kinect_data.add_video((uint8_t*) Singleton::GetInstance()->data.rgb);
+	Singleton::GetInstance()->data.rgb = new_rgb;
+	freenect_set_video_buffer(dev, Singleton::GetInstance()->data.rgb);
 }
 
 
@@ -408,15 +408,15 @@ int main(int argc, char **argv)
 {
 	int user_device_number = 0;
 
-	CheckValidation(argc, argv, user_device_number, Singleton::GetSingleton()->data.count_of_files, 
-										Singleton::GetSingleton()->data);	
+	CheckValidation(argc, argv, user_device_number, Singleton::GetInstance()->data.count_of_files, 
+										Singleton::GetInstance()->data);	
 
 	Device dev;
 
 	dev.InitDevice(user_device_number);	
 
 	Files kinect_files;
-	kinect_files.init(Singleton::GetSingleton()->data.count_of_files);
+	kinect_files.init(Singleton::GetInstance()->data.count_of_files);
 
 	dev.startDepth();
 	dev.startVideo();
