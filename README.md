@@ -11,3 +11,6 @@ To build the project you need:
 
 - enter into "project_kin" and run "make all"
 
+To change permission for Kinect devices:
+
+See https://github.com/code-iai/iai_kinect2/blob/master/README.md
