@@ -7,6 +7,8 @@
 #include <string>
 #include <iostream>
 #include <stdint.h>
+#include <pthread.h>
+#include <unistd.h>
 
 void depth_cb(freenect_device *dev, void *v_depth, uint32_t timestamp);
 void video_cb(freenect_device *dev, void *v_rgb, uint32_t timestamp);
@@ -35,8 +37,8 @@ struct Data
 	uint16_t* depth;
 	uint8_t* rgb;
 
-	freenect_resolution cur_depth_resolution;
-	freenect_depth_format cur_depth_format;
+	freenect_resolution cur_depth_resolution = FREENECT_RESOLUTION_MEDIUM;
+	freenect_depth_format cur_depth_format = FREENECT_DEPTH_REGISTERED;
 
 	freenect_resolution cur_video_resolution = FREENECT_RESOLUTION_MEDIUM;
 	freenect_video_format cur_video_format = FREENECT_VIDEO_RGB;
@@ -122,15 +124,17 @@ void frame_sequence::write_to_files(Files& kinect_files)
 {
 	int width_depth = freenect_find_depth_mode(Singleton::GetInstance()->data.cur_depth_resolution, Singleton::GetInstance()->data.cur_depth_format).width;
 	int height_depth = freenect_find_depth_mode(Singleton::GetInstance()->data.cur_depth_resolution, Singleton::GetInstance()->data.cur_depth_format).height;
+	
 	for (int i = 0; i < (int)kinect_files.depth_files.size(); i++)
 	{
 		for (int j = 0; j < height_depth; j++)
 		{
 			for (int l = 0; l < width_depth; l++)
-				fprintf(kinect_files.depth_files[i], "%d ", *depth_frame[j*width_depth + l]);
+				fprintf(kinect_files.depth_files[i], "%d ", depth_frame[i][j*width_depth + l]);
 			fprintf(kinect_files.depth_files[i], "\n");
 		}
 	}
+
 	int width_video = freenect_find_video_mode(Singleton::GetInstance()->data.cur_video_resolution, 
 								Singleton::GetInstance()->data.cur_video_format).width;
 	int height_video = freenect_find_video_mode(Singleton::GetInstance()->data.cur_video_resolution, 
@@ -140,7 +144,7 @@ void frame_sequence::write_to_files(Files& kinect_files)
 		for (int j = 0; j < height_video; j++)
 		{
 			for (int l = 0; l < width_video; l++)
-				fprintf(kinect_files.video_files[i], "%x ", *video_frame[j*width_video + l]);
+				fprintf(kinect_files.video_files[i], "%x ", video_frame[i][j*width_video + l]);
 			fprintf(kinect_files.video_files[i], "\n");
 		}
 	}
@@ -180,13 +184,14 @@ void Device::InitDevice(int user_device_number = 0)
 		throw My_Error("Could not open device\n");
 	}
 
+	uint16_t* depth = (uint16_t*) new uint8_t [freenect_find_depth_mode(Singleton::GetInstance()->data.cur_depth_resolution, Singleton::GetInstance()->data.cur_depth_format).bytes];
+	uint8_t* rgb = new uint8_t [freenect_find_video_mode(Singleton::GetInstance()->data.cur_video_resolution, Singleton::GetInstance()->data.cur_video_format).bytes];
+
+
  	freenect_set_depth_callback(f_dev, depth_cb);
 	freenect_set_video_callback(f_dev, video_cb);
 	freenect_set_depth_mode(f_dev, freenect_find_depth_mode(Singleton::GetInstance()->data.cur_depth_resolution, Singleton::GetInstance()->data.cur_depth_format));
 	freenect_set_video_mode(f_dev, freenect_find_video_mode(Singleton::GetInstance()->data.cur_video_resolution, Singleton::GetInstance()->data.cur_video_format));
-
-	uint16_t* depth = (uint16_t*) new uint8_t [freenect_find_depth_mode(Singleton::GetInstance()->data.cur_depth_resolution, Singleton::GetInstance()->data.cur_depth_format).bytes];
-	uint8_t* rgb = new uint8_t [freenect_find_video_mode(Singleton::GetInstance()->data.cur_video_resolution, Singleton::GetInstance()->data.cur_video_format).bytes];
 
 	Singleton::GetInstance()->data.depth = depth;
 	Singleton::GetInstance()->data.rgb = rgb;
@@ -208,6 +213,7 @@ void Device::writeFiles(Files& kinect_files)
 {
 	while (1)
 	{
+		usleep(10000);
 		if (Singleton::GetInstance()->data.kinect_data.size() >= Singleton::GetInstance()->data.count_of_files)
 		{
 			freenect_stop_depth(f_dev);
@@ -215,6 +221,11 @@ void Device::writeFiles(Files& kinect_files)
 			Singleton::GetInstance()->data.kinect_data.write_to_files(kinect_files);
 			break;
 		}	
+		int res = freenect_process_events(f_ctx);
+		if (res < 0 && res != -10) {
+			throw My_Error("\nError received from libusb - aborting.");
+			break;
+		}
 	}
 }
 
@@ -235,6 +246,7 @@ void write_help()
 
 void depth_cb(freenect_device *dev, void *v_depth, uint32_t timestamp)
 {
+//	std::cerr << "depth\n"; 
 	assert (Singleton::GetInstance()->data.depth == v_depth);
 	
 	uint16_t* new_depth = (uint16_t*) new uint8_t [freenect_find_depth_mode(Singleton::GetInstance()->data.cur_depth_resolution, Singleton::GetInstance()->data.cur_depth_format).bytes];
@@ -246,6 +258,7 @@ void depth_cb(freenect_device *dev, void *v_depth, uint32_t timestamp)
 
 void video_cb(freenect_device *dev, void *v_rgb, uint32_t timestamp)
 {
+//	std::cerr << "video\n";
 	assert(Singleton::GetInstance()->data.rgb == v_rgb);
 
 	uint8_t* new_rgb = new uint8_t [freenect_find_video_mode(Singleton::GetInstance()->data.cur_video_resolution, Singleton::GetInstance()->data.cur_video_format).bytes];
@@ -261,7 +274,7 @@ std::string name_of_file_depth(int t, int max_t)
 	int size = std::to_string(max_t).size();
 	char s[size];
 	std::sprintf(s, "%0*d", size, t);
-	return "depth_file_" + std::string(s);		
+	return (std::string("depth_file_") + std::string(s));		
 }
 
 std::string name_of_file_video(int t, int max_t)
@@ -269,7 +282,7 @@ std::string name_of_file_video(int t, int max_t)
 	int size = std::to_string(max_t).size();
 	char s[size];
 	std::sprintf(s, "%0*d", size, t);
-	return "video_file_" + std::string(s);		
+	return (std::string("video_file_") + std::string(s));		
 }
 
 void Files::init(int count_of_files)
@@ -287,8 +300,13 @@ void Files::init(int count_of_files)
 	}
 }
 
-void CheckValidation(int argc, char** argv, int& user_device_number, int& count_of_files, Data& data)
+int CheckValidation(int argc, char** argv, int& user_device_number, int& count_of_files, Data& data)
 {
+	if (argc > 1 && strcmp(argv[1], "--help") == 0)
+	{
+		write_help();
+		return 0;
+	}
 	count_of_files = 1;
 
 	data.cur_depth_resolution = FREENECT_RESOLUTION_MEDIUM;
@@ -407,7 +425,7 @@ void CheckValidation(int argc, char** argv, int& user_device_number, int& count_
 		}
 		data.cur_video_format = Data::types_of_formats_video[num_video_format];		
 	}
-
+	return 1;
 }
 
 int main(int argc, char **argv)
@@ -416,8 +434,11 @@ int main(int argc, char **argv)
 
 		int user_device_number = 0;
 	
-		CheckValidation(argc, argv, user_device_number, Singleton::GetInstance()->data.count_of_files, 
-											Singleton::GetInstance()->data);	
+		if (!CheckValidation(argc, argv, user_device_number, Singleton::GetInstance()->data.count_of_files, 
+											Singleton::GetInstance()->data))
+		{
+			return 0;
+		}
 		Device dev;
 
 		dev.InitDevice(user_device_number);	
@@ -425,14 +446,18 @@ int main(int argc, char **argv)
 		Files kinect_files;
 		kinect_files.init(Singleton::GetInstance()->data.count_of_files);
 	
-		dev.startVideo();
 		dev.startDepth();
+		dev.startVideo();
 
 		dev.writeFiles(kinect_files);
 	}
 	catch(My_Error& me)
 	{
 		std::cerr << me.s << std::endl;
+	}
+	catch(...)
+	{
+		std::cerr << "Error" << std::endl;	
 	}	
 	return 0;
 }
