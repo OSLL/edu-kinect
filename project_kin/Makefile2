@@ -1,0 +1,7 @@
+all: read_from_files clean
+read_from_files: read_from_files.o
+	g++ -L$(LD_LIBRARY_PATH) -g3 -std=c++11 read_from_files.o -lfreenect -o read_from_files -lglut -lGLU -lGL
+read_from_files.o: read_from_files.cpp
+	g++ -I$(LIBFREENECT_HEADER) -g3 -std=c++11 -c read_from_files.cpp -lglut -lGLU -lGL
+clean: 
+	rm *.o 

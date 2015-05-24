@@ -144,7 +144,12 @@ void frame_sequence::write_to_files(Files& kinect_files)
 		for (int j = 0; j < height_video; j++)
 		{
 			for (int l = 0; l < width_video; l++)
-				fprintf(kinect_files.video_files[i], "%x ", video_frame[i][j*width_video + l]);
+			{	for (int t = 0; t < 3; t++)
+				{
+					fprintf(kinect_files.video_files[i], "%x", video_frame[i][(j*width_video + l)*3 + t]);
+				}
+				fprintf(kinect_files.video_files[i], " ");
+			}
 			fprintf(kinect_files.video_files[i], "\n");
 		}
 	}
