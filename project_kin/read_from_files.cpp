@@ -278,10 +278,10 @@ void Drawer::display()
 	{
 		for (int j = 0; j < width; j++)
 		{
-			double color = (double)array[i*width + j]/FREENECT_DEPTH_MM_MAX_VALUE;
+			double color = (double)array[(height - i - 1)*width + (width - j - 1)]/10;
 			glColor3f(color, color, color);
 //			if (i == 100) std::cerr << color << " ";
-			glVertex2f((double)j/width, (double)i/height);
+			glVertex2f(2*((double)j/width - 0.5), 2*((double)i/height - 0.5));
 		}
 	}
 	glEnd();
@@ -325,7 +325,7 @@ int main(int argc, char* argv[])
 		manager.set_cut_files(1);
 		uint16_t* aver = manager.count_average();
 		uint16_t* disp = manager.count_dispersion(aver);
-		Drawer drawer(aver, 480, 640);
+		Drawer drawer(disp, 480, 640);
 		drawer.init(argc, argv);
 		drawer.draw();
 	}
